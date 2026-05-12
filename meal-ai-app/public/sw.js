@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meal-ai-v5';
+const CACHE_NAME = 'meal-ai-v6';
 const urlsToCache = [
   './',
   './index.html',
