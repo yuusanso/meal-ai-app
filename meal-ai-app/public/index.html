@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>写真de簡単食事管理</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#10B981">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fa-solid fa-leaf"></i>
+                <h1>写真de簡単食事管理</h1>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Upload Section -->
+            <section class="card upload-section" id="uploadSection">
+                <h2>食事を記録する</h2>
+                <p>写真を撮るか、アルバムから選んでください。</p>
+                <label for="imageInput" class="upload-area">
+                    <input type="file" id="imageInput" accept="image/*" hidden>
+                    <div class="upload-content">
+                        <div class="upload-icon-container">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                        <span>写真をアップロード</span>
+                    </div>
+                </label>
+            </section>
+
+            <!-- Preview & Analyze Section -->
+            <section class="card preview-section hidden" id="previewSection">
+                <div class="preview-header">
+                    <h2>写真の確認</h2>
+                    <button id="reselectBtn" class="text-btn"><i class="fa-solid fa-rotate-left"></i> 選び直す</button>
+                </div>
+                <div class="image-preview-container">
+                    <img id="imagePreview" src="" alt="食事のプレビュー">
+                </div>
+                <button id="analyzeBtn" class="primary-btn">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> AIで栄養素を測定する
+                </button>
+            </section>
+
+            <!-- Loading Overlay -->
+            <div class="loading-overlay hidden" id="loadingOverlay">
+                <div class="spinner"></div>
+                <p>AIが写真を解析中...</p>
+                <div class="loading-steps">
+                    <span class="step step-active">料理を特定しています</span>
+                    <span class="step">栄養素を計算しています</span>
+                    <span class="step">完了間近です</span>
+                </div>
+            </div>
+
+            <!-- Result Section -->
+            <section class="card result-section hidden" id="resultSection">
+                <div class="result-header">
+                    <h2>解析結果</h2>
+                    <span class="badge ai-badge"><i class="fa-solid fa-robot"></i> AI推定</span>
+                </div>
+                <div class="dish-info">
+                    <h3 id="dishName">解析中...</h3>
+                </div>
+                <div class="nutrition-grid">
+                    <div class="nutrition-item cal">
+                        <span class="label">カロリー</span>
+                        <div class="value-container">
+                            <span class="value" id="calValue">0</span>
+                            <span class="unit">kcal</span>
+                        </div>
+                        <div class="progress-bar"><div class="progress" id="calProgress"></div></div>
+                    </div>
+                    <div class="nutrition-item pro">
+                        <span class="label">タンパク質</span>
+                        <div class="value-container">
+                            <span class="value" id="proValue">0</span>
+                            <span class="unit">g</span>
+                        </div>
+                        <div class="progress-bar"><div class="progress" id="proProgress"></div></div>
+                    </div>
+                    <div class="nutrition-item carb">
+                        <span class="label">炭水化物</span>
+                        <div class="value-container">
+                            <span class="value" id="carbValue">0</span>
+                            <span class="unit">g</span>
+                        </div>
+                        <div class="progress-bar"><div class="progress" id="carbProgress"></div></div>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button id="saveBtn" class="primary-btn">この記録を保存</button>
+                    <button id="discardBtn" class="secondary-btn">破棄する</button>
+                </div>
+            </section>
+
+            <!-- History Section -->
+            <section class="history-section" id="historySection">
+                <h2>本日の記録</h2>
+                <div class="history-summary">
+                    <div class="summary-item">
+                        <span class="label">合計カロリー</span>
+                        <span class="value"><span id="totalCal">0</span> kcal</span>
+                    </div>
+                </div>
+                <div class="history-list" id="historyList">
+                    <!-- History items will be injected here via JS -->
+                    <div class="empty-state">
+                        <i class="fa-solid fa-utensils"></i>
+                        <p>まだ本日の記録はありません。</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <!-- Script -->
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('ServiceWorker registered'))
+                    .catch(err => console.log('ServiceWorker registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+</html>
