@@ -14,13 +14,6 @@ const discardBtn = document.getElementById('discardBtn');
 const historyList = document.getElementById('historyList');
 const totalCalEl = document.getElementById('totalCal');
 
-// Settings DOM Elements
-const settingsBtn = document.getElementById('settingsBtn');
-const settingsModal = document.getElementById('settingsModal');
-const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-const apiKeyInput = document.getElementById('apiKeyInput');
-
 // Current State
 let currentImageSrc = null; // Base64 data URL
 let currentImageMimeType = null;
@@ -30,7 +23,6 @@ let historyData = [];
 // Initialize App
 function init() {
     loadHistory();
-    loadSettings();
     setupEventListeners();
 }
 
@@ -41,29 +33,6 @@ function setupEventListeners() {
     analyzeBtn.addEventListener('click', analyzeImage);
     saveBtn.addEventListener('click', saveResult);
     discardBtn.addEventListener('click', resetToUpload);
-    
-    // Settings Listeners
-    settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
-    closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
-    saveSettingsBtn.addEventListener('click', saveSettings);
-}
-
-function loadSettings() {
-    const key = localStorage.getItem('geminiApiKey');
-    if (key) {
-        apiKeyInput.value = key;
-    }
-}
-
-function saveSettings() {
-    const key = apiKeyInput.value.trim();
-    if (key) {
-        localStorage.setItem('geminiApiKey', key);
-        alert('APIキーを保存しました。');
-    } else {
-        localStorage.removeItem('geminiApiKey');
-    }
-    settingsModal.classList.add('hidden');
 }
 
 // Handle File Input
@@ -102,15 +71,8 @@ function getBase64Data(dataUrl) {
     return dataUrl.split(',')[1];
 }
 
-// Analyze Image using Gemini API
+// Analyze Image using Backend API
 async function analyzeImage() {
-    const apiKey = localStorage.getItem('geminiApiKey');
-    if (!apiKey) {
-        alert('右上の歯車アイコン（設定）からGemini APIキーを入力してください。');
-        settingsModal.classList.remove('hidden');
-        return;
-    }
-
     // Show Loading
     loadingOverlay.classList.remove('hidden');
     
@@ -134,55 +96,23 @@ async function analyzeImage() {
     try {
         const base64Image = getBase64Data(currentImageSrc);
         
-        const requestBody = {
-            contents: [{
-                parts: [
-                    { text: `この写真に写っている料理の名前と、一般的な1人前あたりのカロリー(kcal)、タンパク質(g)、炭水化物(g)を推測してください。
-以下の厳密なJSON形式のみを出力してください（Markdownのバッククォートなどは含めないでください）。
-{
-  "name": "料理名",
-  "cal": 500,
-  "pro": 20,
-  "carb": 50
-}` },
-                    {
-                        inline_data: {
-                            mime_type: currentImageMimeType,
-                            data: base64Image
-                        }
-                    }
-                ]
-            }],
-            generationConfig: {
-                temperature: 0.2,
-                response_mime_type: "application/json"
-            }
-        };
-
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch('/api/analyze', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({
+                imageBase64: base64Image,
+                mimeType: currentImageMimeType
+            })
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error?.message || 'API通信エラーが発生しました');
+            throw new Error(errorData.error || 'サーバーエラーが発生しました');
         }
 
-        const data = await response.json();
-        const textResult = data.candidates[0].content.parts[0].text;
-        
-        let parsedResult;
-        try {
-            parsedResult = JSON.parse(textResult);
-        } catch (e) {
-            // Strip markdown block if model ignored the instruction
-            const cleaned = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
-            parsedResult = JSON.parse(cleaned);
-        }
+        const parsedResult = await response.json();
 
         currentResult = {
             id: Date.now().toString(),
@@ -203,8 +133,8 @@ async function analyzeImage() {
         resultSection.classList.remove('hidden');
 
     } catch (error) {
-        console.error("Gemini API Error:", error);
-        alert('解析に失敗しました。APIキーが正しいか確認してください。\n詳細: ' + error.message);
+        console.error("Analysis Error:", error);
+        alert('解析に失敗しました。\n詳細: ' + error.message);
         clearInterval(stepInterval);
         loadingOverlay.classList.add('hidden');
     }
@@ -218,7 +148,7 @@ function displayResult(data) {
     animateValue('proValue', 0, data.pro, 1000);
     animateValue('carbValue', 0, data.carb, 1000);
     
-    // Animate Progress Bars (assuming max daily values: cal 2000, pro 60, carb 250)
+    // Animate Progress Bars
     setTimeout(() => {
         document.getElementById('calProgress').style.width = `${Math.min((data.cal / 2000) * 100, 100)}%`;
         document.getElementById('proProgress').style.width = `${Math.min((data.pro / 60) * 100, 100)}%`;
